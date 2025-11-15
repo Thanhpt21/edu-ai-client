@@ -1,7 +1,7 @@
 services:
   frontend:
     build: .
-    container_name: tgsoft-frontend-prod
+    container_name: edu-frontend
     ports:
       - "5001:5001"  
     env_file:
