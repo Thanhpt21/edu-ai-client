@@ -138,7 +138,7 @@ export const UserCreateModal = ({
           <Col span={12}>
             <Form.Item 
               label="Số điện thoại" 
-              name="phoneNumber"
+              name="phone"
               rules={[
                 {
                   pattern: /^0[0-9]{9}$/,

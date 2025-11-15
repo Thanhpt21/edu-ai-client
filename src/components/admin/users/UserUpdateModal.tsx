@@ -36,7 +36,7 @@ export const UserUpdateModal = ({
     if (user && open) {
       form.setFieldsValue({
         name: user.name,
-        phoneNumber: user.phoneNumber,
+        phone: user.phone,
         gender: user.gender,
         role: user.role,
       })
@@ -123,7 +123,7 @@ export const UserUpdateModal = ({
           <Col span={12}>
             <Form.Item 
               label="Số điện thoại" 
-              name="phoneNumber"
+              name="phone"
               rules={[
                 {
                   pattern: /^0[0-9]{9}$/,

@@ -1,7 +1,7 @@
 'use client';
 
 import { Image, Layout, Menu } from 'antd';
-import { AppleOutlined, AppstoreOutlined, BgColorsOutlined, BranchesOutlined, DashboardOutlined, FileProtectOutlined, GiftOutlined, GoldOutlined, HomeOutlined, MessageOutlined, PicLeftOutlined, PicRightOutlined, ProductOutlined, ScissorOutlined, SettingOutlined, SkinOutlined, SolutionOutlined, TruckOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
+import { AppleOutlined, AppstoreOutlined, BgColorsOutlined, BookOutlined, BranchesOutlined, DashboardOutlined, FileProtectOutlined, GiftOutlined, GoldOutlined, HomeOutlined, MessageOutlined, PicLeftOutlined, PicRightOutlined, ProductOutlined, ScissorOutlined, SettingOutlined, SkinOutlined, SolutionOutlined, TruckOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 interface SidebarAdminProps {
@@ -34,6 +34,13 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             icon: <DashboardOutlined />,
             label: <Link href="/admin">Dashboard</Link>,
           },
+          {
+              key: '2',
+              icon: <GoldOutlined />,
+              label: <Link href="/admin/course">Khóa học</Link>,
+            },
+
+           
         
           {
             key: '3',

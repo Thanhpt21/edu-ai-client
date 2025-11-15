@@ -11,6 +11,12 @@ export interface Lesson {
   durationMin: number | null
   createdAt: string
   updatedAt: string
+  course?: any
+  heygenVideos?: any[]
+  stats?: {
+    progressCount: number
+    heygenVideoCount: number
+  }
 }
 
 export interface LessonWithBasicRelations extends Lesson {

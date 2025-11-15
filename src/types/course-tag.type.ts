@@ -3,4 +3,9 @@ export interface CourseTag {
   tagId: number
   createdAt: string
   updatedAt: string
+  course: {
+    id: number
+    title: string
+    slug: string
+  }
 }

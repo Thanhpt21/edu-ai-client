@@ -15,6 +15,18 @@ export interface Course {
   totalViews: number
   createdAt: string
   updatedAt: string
+
+   instructor?: any
+  categories?: any[]
+  tags?: any[]
+  prerequisites?: any[]
+  requiredBy?: any[]
+  lessons?: any[]
+  stats?: {
+    lessonCount: number
+    enrollmentCount: number
+    reviewCount: number
+  }
 }
 
 export interface CourseWithBasicRelations extends Course {

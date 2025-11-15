@@ -11,7 +11,14 @@ export interface User {
   avatar: string | null; 
   isActive: boolean
   type_account: 'normal' | 'google' | 'facebook' | string
-  tokenAI: number;
+   roles?: {
+    roleId: number
+    role: {
+      id: number
+      name: string
+      description?: string
+    }
+  }[]
   createdAt: string
   updatedAt: string
 }
