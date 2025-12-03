@@ -1,21 +1,31 @@
-// src/enrollments/types/enrollment.types.ts
+import { User } from './user.type'
+import { Course } from './course.type'
 
 export interface Enrollment {
   id: number
   userId: number
   courseId: number
-  enrolledAt: string
-  progress: number | null
-  createdAt: string
-  updatedAt: string
+  enrolledAt: string // ISO date string
+  progress?: number
 }
 
-export interface EnrollmentWithBasicRelations extends Enrollment {
+// Interface cho enrollment với relations
+export interface EnrollmentWithDetails extends Enrollment {
   user: {
     id: number
     name: string
     email: string
     avatar?: string
+    role: string // 👈 THÊM ROLE VÀO ĐÂY
+    roles?: Array<{ // 👈 THÊM ROLES NẾU CÓ
+      userId: number
+      roleId: number
+      role: {
+        id: number
+        name: string
+        description?: string
+      }
+    }>
   }
   course: {
     id: number
@@ -23,222 +33,55 @@ export interface EnrollmentWithBasicRelations extends Enrollment {
     slug: string
     thumbnail?: string
     level: string
-    price: number | null
+    price: number
+    totalLessons: number
     instructor: {
       id: number
       name: string
       email: string
     }
-    totalLessons: number
   }
 }
 
-export interface EnrollmentWithFullRelations extends EnrollmentWithBasicRelations {
-  courseProgress?: {
-    completedLessons: number
-    totalLessons: number
-    completionPercentage: number
-    lastAccessed?: string
-  }
-  recentActivity?: {
-    lessonId: number
-    lessonTitle: string
-    completedAt: string
-  }[]
-}
-
-// src/enrollments/types/enrollment.types.ts
-
-export interface EnrollmentResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithBasicRelations
-}
-
-export interface EnrollmentDetailResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithFullRelations
-}
-
+// Interface cho list response
 export interface EnrollmentListResponse {
-  success: boolean
-  message: string
-  data: {
-    data: EnrollmentWithBasicRelations[]
-    total: number
-    page: number
-    pageCount: number
-  }
+  data: EnrollmentWithDetails[]
+  total: number
+  page: number
+  pageCount: number
 }
 
-export interface UserEnrollmentsResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithBasicRelations[]
-}
-
-export interface CourseEnrollmentsResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithBasicRelations[]
-}
-
-export interface CheckEnrollmentResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithBasicRelations | null
-}
-
+// Interface cho enrollment stats
 export interface EnrollmentStats {
-  totalEnrollments: number
-  activeEnrollments: number
-  completedEnrollments: number
+  total: number
+  completed: number
+  inProgress: number
   averageProgress: number
-  enrollmentTrends?: {
-    date: string
-    enrollments: number
-  }[]
 }
 
-export interface CreateEnrollmentRequest {
-  userId: number
-  courseId: number
-  progress?: number
-}
-
-export interface UpdateEnrollmentRequest {
-  progress?: number
-}
-
-export interface EnrollmentQuery {
+// Interface cho pagination params
+export interface EnrollmentQueryParams {
   page?: number
   limit?: number
   userId?: number
   courseId?: number
   search?: string
-  minProgress?: number
-  maxProgress?: number
-  sortBy?: 'enrolledAt' | 'progress' | 'userName' | 'courseTitle'
-  sortOrder?: 'asc' | 'desc'
 }
 
-export interface BulkEnrollmentRequest {
-  userIds: number[]
-  courseId: number
-}
-
-export interface EnrollmentProgressUpdate {
-  enrollmentId: number
-  progress: number
-  completedLessons: number
-  totalLessons: number
-}
-
-export interface UserEnrollmentStats {
-  userId: number
-  totalEnrollments: number
-  completedCourses: number
-  inProgressCourses: number
-  averageProgress: number
-  totalLearningTime?: number
-  favoriteCategories?: {
-    categoryId: number
-    categoryName: string
-    enrollmentCount: number
-  }[]
-}
-
-export interface CourseEnrollmentStats {
-  courseId: number
-  courseTitle: string
-  totalEnrollments: number
-  activeEnrollments: number
-  completionRate: number
-  averageProgress: number
-  averageCompletionTime?: number
-  enrollmentGrowth: {
-    period: string
-    growth: number
-  }[]
-}
-
-export interface EnrollmentAnalytics {
-  period: string
-  totalEnrollments: number
-  completedEnrollments: number
-  averageProgress: number
-  popularCourses: Array<{
-    courseId: number
-    courseTitle: string
-    enrollmentCount: number
-  }>
-  userEngagement: {
-    activeUsers: number
-    averageProgress: number
-    completionRate: number
-  }
-}
-
-export interface EnrollmentTrend {
-  date: string
-  enrollments: number
-  completions: number
-  averageProgress: number
-}
-
-export interface EnrollmentValidation {
-  isValid: boolean
-  errors: string[]
-  canEnroll: boolean
-  prerequisitesCompleted?: boolean
-  hasAccess?: boolean
-}
-
-export interface EnrollmentCompletionEvent {
-  enrollmentId: number
+// Interface cho create enrollment
+export interface CreateEnrollmentData {
   userId: number
   courseId: number
-  completedAt: string
-  progress: number
-  totalLearningTime?: number
+  progress?: number
 }
 
-export interface EnrollmentBulkResult {
-  success: boolean
-  data?: {
-    created: number
-    failed: number
-    enrollments: EnrollmentWithBasicRelations[]
-    errors: Array<{
-      userId: number
-      error: string
-    }>
-  }
-  error?: string
+// Interface cho update enrollment
+export interface UpdateEnrollmentData {
+  progress?: number
 }
 
-export interface EnrollmentWithProgress extends EnrollmentWithBasicRelations {
-  progressDetail: {
-    completedLessons: number
-    totalLessons: number
-    completionPercentage: number
-    lastLessonCompleted?: string
-    nextLesson?: {
-      id: number
-      title: string
-      order: number
-    }
-  }
-}
-export interface DeleteEnrollmentResponse {
-  success: boolean
-  message: string
-  data: null
-}
-
-export interface UpdateProgressResponse {
-  success: boolean
-  message: string
-  data: EnrollmentWithBasicRelations
+// Interface cho enrollment check
+export interface EnrollmentCheckResponse {
+  isEnrolled: boolean
+  enrollment?: EnrollmentWithDetails
 }

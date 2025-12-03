@@ -1,9 +1,18 @@
 // src/components/admin/course/CourseTable.tsx
 'use client'
 
-import { Table, Tag, Space, Tooltip, Input, Button, Modal, message, Image, Select } from 'antd'
+import { Table, Tag, Space, Tooltip, Input, Button, Modal, message, Image, Select, Popover } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined, PictureOutlined, EyeOutlined, SortAscendingOutlined, BookOutlined } from '@ant-design/icons'
+import { 
+  EditOutlined, 
+  DeleteOutlined, 
+  PictureOutlined, 
+  EyeOutlined, 
+  BookOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined
+} from '@ant-design/icons'
 import { useState } from 'react'
 import { useCourses } from '@/hooks/course/useCourses'
 import { useDeleteCourse } from '@/hooks/course/useDeleteCourse'
@@ -12,7 +21,9 @@ import { CourseUpdateModal } from './CourseUpdateModal'
 import { CourseLevel } from '@/enums/course-level.enum'
 import { Course } from '@/types/course.type'
 import { getImageUrl } from '@/utils/getImageUrl'
-import { useRouter } from 'next/navigation' // 🎯 THÊM IMPORT
+import { useRouter } from 'next/navigation'
+import { EnrollmentManagementModal } from './EnrollmentManagementModal'
+import { useCourseEnrollments } from '@/hooks/enrollment/useCourseEnrollments'
 
 const { Option } = Select
 
@@ -24,8 +35,9 @@ export default function CourseTable() {
   const [statusFilter, setStatusFilter] = useState<boolean | ''>('')
   const [openCreate, setOpenCreate] = useState(false)
   const [openUpdate, setOpenUpdate] = useState(false)
+  const [openEnrollmentModal, setOpenEnrollmentModal] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
-  const router = useRouter() // 🎯 THÊM ROUTER
+  const router = useRouter()
 
   const { data, isLoading, refetch } = useCourses({ 
     page, 
@@ -39,6 +51,7 @@ export default function CourseTable() {
   const courses = data?.data || []
   const total = data?.total || 0
 
+  // 🎯 Cập nhật cột học viên
   const columns: ColumnsType<Course> = [
     {
       title: 'STT',
@@ -113,11 +126,14 @@ export default function CourseTable() {
         price ? `${price?.toLocaleString('vi-VN')} VNĐ` : 'Miễn phí',
     },
     {
-      title: 'Lượt xem',
-      dataIndex: 'totalViews',
-      key: 'totalViews',
-      width: 90,
-      render: (views: number) => views?.toLocaleString('vi-VN') || 0,
+      title: 'Học viên',
+      dataIndex: 'id',
+      key: 'enrollments',
+      width: 120,
+      render: (courseId: number) => {
+        // Sử dụng custom hook để lấy số lượng học viên
+        return <EnrollmentCountCell courseId={courseId} />
+      },
     },
     {
       title: 'Trạng thái',
@@ -133,24 +149,35 @@ export default function CourseTable() {
     {
       title: 'Hành động',
       key: 'action',
-      width: 150, // 🎯 TĂNG WIDTH ĐỂ CHỨA THÊM NÚT
+      width: 180,
+      fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          {/* 🎯 THÊM NÚT QUẢN LÝ BÀI HỌC */}
-          <Tooltip title="Quản lý bài học">
-           <BookOutlined
-              style={{ color: '#722ed1', cursor: 'pointer' }}
+          {/* Nút Quản lý học viên */}
+          <Tooltip title="Quản lý học viên">
+            <TeamOutlined
+              style={{ color: '#52c41a', cursor: 'pointer', fontSize: 16 }}
               onClick={() => {
-                  router.push(`/admin/course/${record.id}/lessons`)
+                setSelectedCourse(record)
+                setOpenEnrollmentModal(true)
               }}
             />
           </Tooltip>
-          
-         
 
+          {/* Nút Quản lý bài học */}
+          <Tooltip title="Quản lý bài học">
+            <BookOutlined
+              style={{ color: '#722ed1', cursor: 'pointer', fontSize: 16 }}
+              onClick={() => {
+                router.push(`/admin/course/${record.id}/lessons`)
+              }}
+            />
+          </Tooltip>
+
+          {/* Nút Chỉnh sửa */}
           <Tooltip title="Chỉnh sửa">
             <EditOutlined
-              style={{ color: '#1890ff', cursor: 'pointer' }}
+              style={{ color: '#1890ff', cursor: 'pointer', fontSize: 16 }}
               onClick={() => {
                 setSelectedCourse(record)
                 setOpenUpdate(true)
@@ -158,9 +185,10 @@ export default function CourseTable() {
             />
           </Tooltip>
           
+          {/* Nút Xóa */}
           <Tooltip title="Xóa">
             <DeleteOutlined
-              style={{ color: 'red', cursor: 'pointer' }}
+              style={{ color: 'red', cursor: 'pointer', fontSize: 16 }}
               onClick={() => {
                 Modal.confirm({
                   title: 'Xác nhận xóa khóa học',
@@ -254,7 +282,7 @@ export default function CourseTable() {
         dataSource={courses}
         rowKey="id"
         loading={isLoading}
-        scroll={{ x: 1300 }} // 🎯 TĂNG SCROLL ĐỂ CHỨA THÊM CỘT
+        scroll={{ x: 1300 }}
         pagination={{
           total: total,
           current: page,
@@ -277,6 +305,28 @@ export default function CourseTable() {
         course={selectedCourse}
         refetch={refetch}
       />
+
+      {selectedCourse && (
+        <EnrollmentManagementModal
+          open={openEnrollmentModal}
+          onClose={() => setOpenEnrollmentModal(false)}
+          courseId={selectedCourse.id}
+          courseTitle={selectedCourse.title}
+        />
+      )}
+    </div>
+  )
+}
+
+// 🎯 Component con để hiển thị số lượng học viên
+function EnrollmentCountCell({ courseId }: { courseId: number }) {
+  const { data: enrollments, isLoading } = useCourseEnrollments(courseId)
+  const count = enrollments?.length || 0
+
+  return (
+    <div className="flex items-center gap-1">
+      <TeamOutlined style={{ color: '#1890ff' }} />
+      <span className="ml-1 font-medium">{count}</span>
     </div>
   )
 }
