@@ -1,4 +1,3 @@
-// src/components/admin/SidebarAdmin.tsx
 'use client';
 
 import { Image, Layout, Menu } from 'antd';
@@ -17,6 +16,7 @@ import {
   PicLeftOutlined, 
   PicRightOutlined, 
   ProductOutlined, 
+  QuestionCircleOutlined, // Thêm icon Quiz
   ScissorOutlined, 
   SettingOutlined, 
   SkinOutlined, 
@@ -63,9 +63,14 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             label: <Link href="/admin/course">Khóa học</Link>,
           },
           {
-            key: 'assignments', // Thêm menu Bài tập
+            key: 'assignments',
             icon: <BookOutlined />,
             label: <Link href="/admin/assignments">Bài tập</Link>,
+          },
+          {
+            key: 'quizzes', // Thêm menu Quiz
+            icon: <QuestionCircleOutlined />,
+            label: <Link href="/admin/quizzes">Quiz</Link>,
           },
           {
             key: '3',

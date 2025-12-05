@@ -1,6 +1,9 @@
 // src/courses/types/course.types.ts
 
-import { CourseLevel } from "@/enums/course-level.enum"
+import { CourseLevel, CourseLevelType } from "@/enums/course-level.enum"
+export type SortByField = 'createdAt' | 'title' | 'price' | 'totalViews'
+export type SortOrder = 'asc' | 'desc'
+export type CourseLevelString = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
 
 export interface Course {
   id: number
@@ -163,15 +166,16 @@ export interface CourseQuery {
   page?: number
   limit?: number
   search?: string
-  level?: CourseLevel
+  level?: CourseLevelType
   isPublished?: boolean
   instructorId?: number
   categoryId?: number
   tagId?: number
-  sortBy?: 'createdAt' | 'title' | 'price' | 'totalViews'
-  sortOrder?: 'asc' | 'desc'
+  sortBy?: SortByField
+  sortOrder?: SortOrder
+  minPrice?: number
+  maxPrice?: number
 }
-
 export interface TogglePublishResponse {
   success: boolean
   message: string

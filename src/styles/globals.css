@@ -48,3 +48,31 @@
     font-size: 24px !important;
     margin-right: 12px !important;
 }
+
+/* Custom pagination styles */
+.custom-pagination .ant-pagination-item {
+  border-radius: 8px;
+}
+
+.custom-pagination .ant-pagination-item-active {
+  background-color: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+}
+
+.custom-pagination .ant-pagination-item-active a {
+  color: white !important;
+}
+
+.custom-pagination .ant-pagination-item:hover {
+  border-color: #4f46e5;
+}
+
+.custom-pagination .ant-pagination-item:hover a {
+  color: #4f46e5;
+}
+
+/* Course card hover effect */
+.course-card:hover {
+  transform: translateY(-4px);
+  border-color: #c7d2fe !important;
+}
