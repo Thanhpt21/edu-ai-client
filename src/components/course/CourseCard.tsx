@@ -10,7 +10,8 @@ import {
   DollarOutlined,
   StarOutlined,
   FireOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  PlayCircleOutlined
 } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { Course } from '@/types/course.type'
@@ -24,8 +25,14 @@ interface CourseCardProps {
 export default function CourseCard({ course, compact = false }: CourseCardProps) {
   const router = useRouter()
 
-  const handleViewCourse = () => {
-    router.push(`/courses/${course.id}`)
+  // Hàm điều hướng đến trang lessons của course
+  const handleViewCourseLessons = (courseId: number) => {
+    router.push(`/courses/${courseId}/lessons`)
+  }
+
+  // Hàm điều hướng đến trang chi tiết course
+  const handleViewCourseDetail = (courseId: number) => {
+    router.push(`/courses/${courseId}`)
   }
 
   const getLevelColor = (level: string) => {
@@ -61,10 +68,16 @@ export default function CourseCard({ course, compact = false }: CourseCardProps)
     return num.toString()
   }
 
+  // Ngăn click event bubble lên parent
+  const handleButtonClick = (e: React.MouseEvent, handler: () => void) => {
+    e.stopPropagation()
+    handler()
+  }
+
   return (
     <Card
       hoverable
-      className="course-card !border-gray-200 !rounded-xl !overflow-hidden !shadow-sm hover:!shadow-lg transition-all duration-300"
+      className="course-card !border-gray-200 !rounded-xl !overflow-hidden !shadow-sm hover:!shadow-lg transition-all duration-300 cursor-pointer"
       cover={
         <div className="relative h-48 bg-gray-100 overflow-hidden">
           {course.thumbnail ? (
@@ -96,7 +109,7 @@ export default function CourseCard({ course, compact = false }: CourseCardProps)
                 className="!bg-indigo-100 !text-indigo-600"
               />
               <span className="ml-2 text-sm font-medium text-gray-700">
-                {course.instructor?.name}
+                {course.instructor?.name || 'Unknown Instructor'}
               </span>
             </div>
           </div>
@@ -113,7 +126,7 @@ export default function CourseCard({ course, compact = false }: CourseCardProps)
           </div>
         </div>
       }
-      onClick={handleViewCourse}
+      onClick={() => handleViewCourseDetail(course.id)} // Click card => chi tiết course
     >
       <div className="space-y-3">
         {/* Course title and categories */}
@@ -123,8 +136,8 @@ export default function CourseCard({ course, compact = false }: CourseCardProps)
           </h3>
           
           <div className="flex flex-wrap gap-1 mb-2">
-            {course.categories?.slice(0, 2).map((category) => (
-              <Tag key={category.id} color="blue" className="!text-xs">
+            {course.categories?.slice(0, 2).map((category, index) => (
+              <Tag key={category.id || index} color="blue" className="!text-xs">
                 {category.name}
               </Tag>
             ))}
@@ -184,18 +197,20 @@ export default function CourseCard({ course, compact = false }: CourseCardProps)
             )}
           </div>
           
-          <Button 
-            type="primary" 
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleViewCourse()
-            }}
-            icon={<EyeOutlined />}
-            className="!bg-indigo-600 hover:!bg-indigo-700"
-          >
-            Xem chi tiết
-          </Button>
+          <div className="flex gap-2">
+            {/* Button học ngay - đi đến lessons */}
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={(e) => handleButtonClick(e, () => handleViewCourseLessons(course.id))}
+              icon={<PlayCircleOutlined />}
+              className="!bg-green-600 hover:!bg-green-700"
+            >
+              Học ngay
+            </Button>
+            
+          
+          </div>
         </div>
       </div>
     </Card>

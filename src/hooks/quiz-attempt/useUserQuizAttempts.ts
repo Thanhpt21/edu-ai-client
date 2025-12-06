@@ -1,3 +1,4 @@
+// hooks/quiz-attempt/useUserQuizAttempts.ts
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/axios'
 
@@ -9,5 +10,6 @@ export const useUserQuizAttempts = (quizId: number | string, studentId: number |
       return res.data.data // { attempts: [], stats: {} }
     },
     enabled: !!quizId && !!studentId,
+    staleTime: 1000 * 60 * 5, // 5 phút
   })
 }
