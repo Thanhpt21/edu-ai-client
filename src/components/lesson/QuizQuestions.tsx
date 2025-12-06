@@ -380,21 +380,11 @@ export default function QuizQuestions({
             <Text type="secondary" className="block">
               Đã trả lời: {Object.keys(userAnswers).length}/{questions.length} câu
             </Text>
-            {attemptId && (
-              <Text type="secondary" className="block text-sm">
-                Mã bài làm: {attemptId}
-              </Text>
-            )}
+            
           </div>
           
           <div className="space-x-2">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => refetch()}
-              loading={isLoading}
-            >
-              Làm mới câu hỏi
-            </Button>
+
             
             <Button
               type="primary"
@@ -452,18 +442,6 @@ export default function QuizQuestions({
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 mt-6">          
-          {!showDetailedReview && (
-            <Button 
-              type="dashed"
-              icon={<EyeOutlined />}
-              onClick={() => setShowDetailedReview(true)}
-              size="large"
-            >
-              Xem đáp án chi tiết
-            </Button>
-          )}
-        </div>
       </div>
     )
   }

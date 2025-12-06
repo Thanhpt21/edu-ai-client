@@ -93,7 +93,7 @@ export function QuizDetailModal({ open, onClose, quiz }: QuizDetailModalProps) {
             <Col span={8}>
               <Statistic 
                 title="Điểm trung bình" 
-                value={quiz.stats?.averageScore || 0} 
+                value={Math.round(quiz.stats?.averageScore || 0)} 
                 suffix="/100"
                 prefix={<BarChartOutlined />}
                 precision={1}

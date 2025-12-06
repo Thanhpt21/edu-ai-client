@@ -51,7 +51,7 @@ export default function QuizStats({ quizId, userId }: QuizStatsProps) {
           <Card size="small" className="text-center h-full">
             <Statistic
               title="Điểm trung bình"
-              value={averageScore}
+              value={Math.round(averageScore)}
               suffix="%"
               prefix={<BarChartOutlined />}
               valueStyle={{ color: '#52c41a' }}

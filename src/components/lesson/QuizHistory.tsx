@@ -281,13 +281,7 @@ export default function QuizHistory({
       {/* Header với nút reload */}
       <div className="flex justify-between items-center">
         <Title level={3} className="mb-0">📊 Thống kê & Lịch sử</Title>
-        <Button 
-          type="default" 
-          onClick={() => refetch()}
-          loading={isLoading}
-        >
-          🔄 Tải lại
-        </Button>
+       
       </div>
 
       {/* Thống kê tổng quan */}
