@@ -28,6 +28,7 @@ interface QuizSectionProps {
   isLoadingStart: boolean
   isLoadingSubmit: boolean
   isReviewMode?: boolean
+  onQuizAttemptsLoaded?: (quizId: number, attemptsData: any) => void
 }
 
 export default function QuizSection({
@@ -49,6 +50,7 @@ export default function QuizSection({
   isLoadingStart,
   isLoadingSubmit,
   isReviewMode = false,
+  onQuizAttemptsLoaded
 }: QuizSectionProps) {
   const [activeQuizTab, setActiveQuizTab] = useState<string | null>(null)
   const [refetchInterval, setRefetchInterval] = useState<number | false>(false)
@@ -86,41 +88,44 @@ export default function QuizSection({
   }
 
   return (
-    <Collapse
-      defaultActiveKey={['quizzes']}
-      activeKey={activeQuizTab || 'quizzes'}
-      onChange={handleQuizTabChange}
-      className="mb-6"
-    >
-      <Panel
-        header={`Bài kiểm tra (${quizzes.length})`}
-        key="quizzes"
-        extra={<FileTextOutlined />}
+    <>
+      <Collapse
+        defaultActiveKey={['quizzes']}
+        activeKey={activeQuizTab || 'quizzes'}
+        onChange={handleQuizTabChange}
+        className="mb-6"
       >
-        <div className="space-y-4">
-          {quizzes.map((quiz: QuizType) => (
-            <QuizCard
-              key={quiz.id}
-              quiz={quiz}
-              userId={userId}
-              isExpanded={expandedQuizzes.has(quiz.id)}
-              quizAnswers={quizAnswers[quiz.id] || {}}
-              isSubmitted={quizSubmissions[quiz.id] || false}
-              result={quizResults[quiz.id]}
-              activeAttemptId={activeAttemptIds[quiz.id]}
-              refetchInterval={refetchInterval}
-              onToggleQuiz={onToggleQuiz}
-              onStartQuiz={onStartQuiz}
-              onViewReview={onViewReview}
-              onAnswerChange={onAnswerChange}
-              onSubmitQuiz={onSubmitQuiz}
-              onRetryQuiz={onRetryQuiz}
-              onRestoreAttempt={onRestoreAttempt}
-              isLoadingSubmit={isLoadingSubmit}
-            />
-          ))}
-        </div>
-      </Panel>
-    </Collapse>
+        <Panel
+          header={`Bài kiểm tra (${quizzes.length})`}
+          key="quizzes"
+          extra={<FileTextOutlined />}
+        >
+          <div className="space-y-4">
+            {quizzes.map((quiz: QuizType) => (
+              <QuizCard
+                key={quiz.id}
+                quiz={quiz}
+                userId={userId}
+                isExpanded={expandedQuizzes.has(quiz.id)}
+                quizAnswers={quizAnswers[quiz.id] || {}}
+                isSubmitted={quizSubmissions[quiz.id] || false}
+                result={quizResults[quiz.id]}
+                activeAttemptId={activeAttemptIds[quiz.id]}
+                refetchInterval={refetchInterval}
+                onToggleQuiz={onToggleQuiz}
+                onStartQuiz={onStartQuiz}
+                onViewReview={onViewReview}
+                onAnswerChange={onAnswerChange}
+                onSubmitQuiz={onSubmitQuiz}
+                onRetryQuiz={onRetryQuiz}
+                onRestoreAttempt={onRestoreAttempt}
+                isLoadingSubmit={isLoadingSubmit}
+                onAttemptsLoaded={onQuizAttemptsLoaded}
+              />
+            ))}
+          </div>
+        </Panel>
+      </Collapse>
+    </>
   )
 }

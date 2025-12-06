@@ -36,6 +36,7 @@ interface QuizCardProps {
   onRetryQuiz: (quizId: number) => Promise<void>
   onRestoreAttempt: (quizId: number, attemptId: number) => void
   isLoadingSubmit: boolean
+  onAttemptsLoaded?: (quizId: number, attemptsData: any) => void  // Thêm prop này
 }
 
 export default function QuizCard({
@@ -55,6 +56,7 @@ export default function QuizCard({
   onRetryQuiz,
   onRestoreAttempt,
   isLoadingSubmit,
+  onAttemptsLoaded,  // Nhận prop mới
 }: QuizCardProps) {
   const [showHistory, setShowHistory] = useState(false)
   const passingScore = quiz.passingScore || 70
@@ -82,12 +84,26 @@ export default function QuizCard({
   const hasActiveAttempt = !!activeAttempt
   const historyCount = userAttemptsData?.attempts?.length || 0
 
-  // Auto-restore attempt từ server
+  // 🔥 QUAN TRỌNG: Gửi attempts data lên parent khi có dữ liệu
   useEffect(() => {
-    if (activeAttempt?.id && !hasLocalAttempt) {
-      onRestoreAttempt(quiz.id, activeAttempt.id)
+    if (userAttemptsData && onAttemptsLoaded) {
+      console.log(`📤 QuizCard ${quiz.id}: Sending attempts data to parent`, {
+        quizId: quiz.id,
+        attempts: userAttemptsData.attempts?.length || 0,
+        highestScore: userAttemptsData.stats?.highestScore || 0
+      })
+      onAttemptsLoaded(quiz.id, userAttemptsData)
     }
-  }, [activeAttempt, quiz.id, hasLocalAttempt, onRestoreAttempt])
+  }, [userAttemptsData, quiz.id, onAttemptsLoaded])
+
+  // Auto-restore attempt từ server
+  // FIXED: Khôi phục attempt dù đã có local attempt hay chưa
+    useEffect(() => {
+    if (activeAttempt?.id && activeAttemptId !== activeAttempt.id) {
+        console.log(`Restoring active attempt ${activeAttempt.id} for quiz ${quiz.id}`)
+        onRestoreAttempt(quiz.id, activeAttempt.id)
+    }
+    }, [activeAttempt?.id, activeAttemptId, quiz.id]) 
 
   // Polling cho real-time updates
   useEffect(() => {
@@ -241,7 +257,13 @@ export default function QuizCard({
           ) : (hasLocalAttempt || hasActiveAttempt) ? (
             <>Đang làm bài • Chưa hoàn thành</>
           ) : hasHistory ? (
-            <>Đã làm {historyCount} lần • Điểm cao nhất: {userAttemptsData?.stats?.highestScore || 0}%</>
+            <>
+              Đã làm {historyCount} lần • 
+              Điểm cao nhất: <strong>{userAttemptsData?.stats?.highestScore || 0}%</strong>
+              {userAttemptsData?.stats?.highestScore && (
+                <> • Trạng thái: <strong>{userAttemptsData.stats.highestScore >= passingScore ? 'Đã đạt' : 'Chưa đạt'}</strong></>
+              )}
+            </>
           ) : null}
         </div>
       )}

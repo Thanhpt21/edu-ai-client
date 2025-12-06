@@ -33,10 +33,8 @@ import { useAuth } from '@/context/AuthContext'
 // Import components
 import VideoLessonPlayer from '@/components/lesson/VideoLessonPlayer'
 import QuizLockBanner from '@/components/lesson/QuizLockBanner'
-
 import LessonContent from '@/components/lesson/LessonContent'
 import LessonSidebar from '@/components/lesson/LessonSidebar'
-import { useUserQuizStatistics } from '@/hooks/quiz-attempt/useUserQuizStatistics'
 import type { QuizType, QuizQuestionType } from './types'
 import QuizSection from '@/components/lesson/QuizSection'
 
@@ -53,6 +51,7 @@ export default function LessonsPage() {
   const userId = currentUser?.id
   
   // State
+  const [quizHighestScores, setQuizHighestScores] = useState<Record<number, number>>({})
   const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null)
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('')
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set())
@@ -63,7 +62,6 @@ export default function LessonsPage() {
   const [activeAttemptIds, setActiveAttemptIds] = useState<Record<number, number>>({})
   const [passedQuizzes, setPassedQuizzes] = useState<Set<number>>(new Set())
   const [isReviewMode, setIsReviewMode] = useState(false)
-  const [selectedQuizForHistory, setSelectedQuizForHistory] = useState<number | null>(null)
 
   // Data fetching
   const { data: courseResponse, isLoading: isLoadingCourse, error: courseError } = useCourseOne(courseId)
@@ -77,14 +75,6 @@ export default function LessonsPage() {
     refetch: refetchQuizzes,
     error: quizzesError
   } = useLessonQuizzes(shouldFetchQuizzes ? selectedLessonId : 0)
-
-  const { 
-    data: userStatsData, 
-    isLoading: isLoadingUserStats,
-    refetch: refetchUserStats 
-  } = useUserQuizStatistics(userId!)
-
-  console.log("userStatsData", userStatsData)
 
   // Mutations
   const startQuizAttemptMutation = useStartQuizAttempt()
@@ -122,46 +112,18 @@ export default function LessonsPage() {
       setQuizAnswers({})
       setQuizSubmissions({})
       setActiveAttemptIds({})
+      setQuizHighestScores({})
     }
   }, [selectedLessonId, refetchQuizzes])
 
-  useEffect(() => {
-    if (userStatsData?.attempts && Object.keys(quizResults).length > 0) {
-      // Đồng bộ quizResults với lịch sử từ API
-      const updatedResults = { ...quizResults }
-      
-      userStatsData.attempts.forEach((attempt: any) => {
-        if (!updatedResults[attempt.quizId]) {
-          // Nếu có attempt trong API nhưng chưa có trong state
-          updatedResults[attempt.quizId] = {
-            percentage: attempt.score,
-            passed: attempt.score >= 70,
-            submitted: true,
-            submittedAt: attempt.submittedAt,
-            hasHistory: true,
-            syncedWithAPI: true
-          }
-        } else {
-          // Đánh dấu đã đồng bộ với API
-          updatedResults[attempt.quizId] = {
-            ...updatedResults[attempt.quizId],
-            hasHistory: true,
-            syncedWithAPI: true
-          }
-        }
-      })
-      
-      setQuizResults(updatedResults)
+  const handleQuizAttemptsLoaded = (quizId: number, attemptsData: any) => {
+    if (attemptsData?.stats?.highestScore !== undefined) {
+      setQuizHighestScores(prev => ({
+        ...prev,
+        [quizId]: attemptsData.stats.highestScore
+      }))
     }
-  }, [userStatsData])
-
-  // Thêm useEffect để tự động refetch userStats khi submit quiz
-  useEffect(() => {
-    // Refetch user stats khi có quiz mới được submit
-    if (Object.keys(quizSubmissions).length > 0) {
-      refetchUserStats()
-    }
-  }, [quizSubmissions, refetchUserStats])
+  }
 
   // Helper functions
   const handleLessonSelect = (lessonId: number) => {
@@ -253,120 +215,43 @@ export default function LessonsPage() {
     }))
   }
 
-  // Cập nhật hàm checkIfQuizPassed
-  const checkIfQuizPassed = (quizId: number) => {
-    // Kiểm tra trong userStatsData từ API trước
-    if (userStatsData?.attempts) {
-      const apiAttempts = userStatsData.attempts.filter((a: any) => a.quizId === quizId)
-      if (apiAttempts.length > 0) {
-        // Lấy điểm cao nhất từ API
-        const highestScore = Math.max(...apiAttempts.map((a: any) => a.score || 0))
-        const quiz = lessonQuizzes?.find((q: any) => q.id === quizId)
-        const passingScore = quiz?.passingScore || 70
-        if (highestScore >= passingScore) {
-          return true
-        }
-      }
-    }
-    
-    // Nếu không có trong API, kiểm tra state local
-    const result = quizResults[quizId]
-    if (!result) return false
-    
+  // Hàm kiểm tra quiz đã pass chưa (chỉ dựa vào state local)
+const checkIfQuizPassed = (quizId: number) => {
+  // 1. Ưu tiên kết quả vừa làm trong phiên hiện tại (local)
+  const localResult = quizResults[quizId]
+  if (localResult?.percentage !== undefined) {
     const quiz = lessonQuizzes?.find((q: any) => q.id === quizId)
     const passingScore = quiz?.passingScore || 70
-    return result.percentage >= passingScore
+    return localResult.percentage >= passingScore
   }
 
-  // Cập nhật hàm canGoToNextLesson để đồng bộ với API
+  // 2. Nếu không có local → dùng điểm cao nhất từ server (đã được QuizCard gửi lên)
+  const serverScore = quizHighestScores[quizId]
+  if (serverScore !== undefined) {
+    const quiz = lessonQuizzes?.find((q: any) => q.id === quizId)
+    const passingScore = quiz?.passingScore || 70
+    return serverScore >= passingScore
+  }
+
+  return false
+}
+
+  // Hàm kiểm tra có thể học bài tiếp theo không
   const canGoToNextLesson = () => {
     if (!currentLesson) return false
     
-    // Kiểm tra xem bài học hiện tại có quiz không
     const currentLessonQuizzes = lessonQuizzes?.filter((q: any) => q.lessonId === currentLesson.id) || []
     
-    // Nếu không có quiz thì cho phép học tiếp
     if (currentLessonQuizzes.length === 0) return true
     
-    // Kiểm tra tất cả quiz của bài học hiện tại đã pass chưa
-    const allQuizzesPassed = currentLessonQuizzes.every((quiz: any) => {
-      // Ưu tiên kiểm tra từ API
-      if (userStatsData?.attempts) {
-        const quizAttempts = userStatsData.attempts.filter((a: any) => a.quizId === quiz.id)
-        if (quizAttempts.length > 0) {
-          const highestScore = Math.max(...quizAttempts.map((a: any) => a.score || 0))
-          const passingScore = quiz.passingScore || 70
-          return highestScore >= passingScore
-        }
-      }
-      
-      // Fallback: kiểm tra state local
-      return checkIfQuizPassed(quiz.id) || passedQuizzes.has(quiz.id)
-    })
+    const allQuizzesPassed = currentLessonQuizzes.every((quiz: any) => 
+      checkIfQuizPassed(quiz.id) || passedQuizzes.has(quiz.id)
+    )
     
     return allQuizzesPassed
   }
 
-  // Cập nhật hàm getCurrentLessonHighestScore để lấy từ API
-  const getCurrentLessonHighestScore = () => {
-    if (!currentLesson) return 0
-    
-    const currentLessonQuizzes = lessonQuizzes?.filter((q: any) => q.lessonId === currentLesson.id) || []
-    let highestScore = 0
-    
-    currentLessonQuizzes.forEach((quiz: any) => {
-      // Ưu tiên lấy từ API
-      if (userStatsData?.attempts) {
-        const quizAttempts = userStatsData.attempts.filter((a: any) => a.quizId === quiz.id)
-        if (quizAttempts.length > 0) {
-          const apiHighestScore = Math.max(...quizAttempts.map((a: any) => a.score || 0))
-          if (apiHighestScore > highestScore) {
-            highestScore = apiHighestScore
-          }
-        }
-      }
-      
-      // Fallback: kiểm tra state local
-      const result = quizResults[quiz.id]
-      if (result?.percentage && result.percentage > highestScore) {
-        highestScore = result.percentage
-      }
-    })
-    
-    return highestScore
-  }
-
-  // Cập nhật hàm getLessonStatus để đồng bộ với API
-  const getLessonStatus = (lesson: any) => {
-    const lessonQuizzesList = lessonQuizzes?.filter((q: any) => q.lessonId === lesson.id) || []
-    
-    if (lessonQuizzesList.length === 0) {
-      return null // Không có quiz
-    }
-    
-    const allPassed = lessonQuizzesList.every((quiz: any) => {
-      // Ưu tiên kiểm tra từ API
-      if (userStatsData?.attempts) {
-        const quizAttempts = userStatsData.attempts.filter((a: any) => a.quizId === quiz.id)
-        if (quizAttempts.length > 0) {
-          const highestScore = Math.max(...quizAttempts.map((a: any) => a.score || 0))
-          const passingScore = quiz.passingScore || 70
-          return highestScore >= passingScore
-        }
-      }
-      
-      // Fallback: kiểm tra state local
-      return checkIfQuizPassed(quiz.id) || passedQuizzes.has(quiz.id)
-    })
-    
-    if (allPassed) {
-      return <Tag color="green">Đã hoàn thành</Tag>
-    } else {
-      return <Tag color="orange">Chưa hoàn thành</Tag>
-    }
-  }
-
-  // Cập nhật handleSubmitQuiz để refetch ngay sau khi submit thành công
+  // Hàm submit quiz
   const handleSubmitQuiz = async (quizId: number, questions: QuizQuestionType[]) => {
     const userAnswers = quizAnswers[quizId] || {}
     let score = 0
@@ -450,9 +335,6 @@ export default function LessonsPage() {
           } else {
             message.warning(`Bạn đã hoàn thành bài kiểm tra với ${percentage}%. Cần ${passingScore}% để qua.`)
           }
-          
-          // ⭐ QUAN TRỌNG: Refetch userStats ngay sau khi submit thành công
-          await refetchUserStats()
         },
         onError: (error: any) => {
           console.error('❌ Submit quiz error:', error)
@@ -497,6 +379,49 @@ export default function LessonsPage() {
     }
   }
 
+  // Hàm lấy trạng thái bài học cho sidebar
+  const getLessonStatus = (lesson: any) => {
+    const lessonQuizzesList = lessonQuizzes?.filter((q: any) => q.lessonId === lesson.id) || []
+    
+    if (lessonQuizzesList.length === 0) {
+      return null // Không có quiz
+    }
+    
+    const allPassed = lessonQuizzesList.every((quiz: any) => 
+      checkIfQuizPassed(quiz.id) || passedQuizzes.has(quiz.id)
+    )
+    
+    if (allPassed) {
+      return <Tag color="green">Đã hoàn thành</Tag>
+    } else {
+      return <Tag color="orange">Chưa hoàn thành</Tag>
+    }
+  }
+
+  // Hàm lấy điểm cao nhất của quiz hiện tại
+const getCurrentLessonHighestScore = () => {
+  if (!currentLesson) return 0
+
+  const currentLessonQuizzes = lessonQuizzes?.filter((q: any) => q.lessonId === currentLesson.id) || []
+  let highestScore = 0
+
+  currentLessonQuizzes.forEach((quiz: any) => {
+    // Ưu tiên local result (nếu vừa làm xong)
+    const local = quizResults[quiz.id]?.percentage
+    if (local !== undefined && local > highestScore) {
+      highestScore = local
+    }
+
+    // Dùng server highest nếu cao hơn
+    const server = quizHighestScores[quiz.id]
+    if (server !== undefined && server > highestScore) {
+      highestScore = server
+    }
+  })
+
+  return highestScore
+}
+  // Hàm xem lại đáp án
   const handleViewReview = async (quizId: number) => {
     try {
       // Đặt chế độ xem lại
@@ -511,7 +436,7 @@ export default function LessonsPage() {
     }
   }
 
-  // Thêm hàm handleToggleQuizWithReviewCheck
+  // Hàm toggle quiz expansion với kiểm tra review mode
   const toggleQuizExpansionWithReviewCheck = (quizId: number) => {
     // Nếu đang trong chế độ xem lại và đóng quiz, tắt chế độ xem lại
     if (expandedQuizzes.has(quizId) && isReviewMode) {
@@ -521,7 +446,7 @@ export default function LessonsPage() {
     toggleQuizExpansion(quizId)
   }
 
-  // Cập nhật hàm handleStartOrContinueQuiz
+  // Hàm xử lý bắt đầu hoặc tiếp tục quiz
   const handleStartOrContinueQuiz = async (quizId: number) => {
     const hasAttempt = activeAttemptIds[quizId]
     const result = quizResults[quizId]
@@ -582,6 +507,7 @@ export default function LessonsPage() {
     }
   }
 
+  // Hàm khôi phục attempt từ server
   const handleRestoreAttempt = (quizId: number, attemptId: number) => {
     console.log(`🔄 Restoring attempt ${attemptId} for quiz ${quizId}`)
     
@@ -590,6 +516,7 @@ export default function LessonsPage() {
       [quizId]: attemptId
     }))
   }
+  
 
   // Loading & error states
   if (isLoadingAuth || isLoadingCourse || isLoadingLessons) {
@@ -796,6 +723,7 @@ export default function LessonsPage() {
               isLoadingStart={startQuizAttemptMutation.isPending}
               isLoadingSubmit={submitQuizAttemptMutation.isPending}
               isReviewMode={isReviewMode}
+              onQuizAttemptsLoaded={handleQuizAttemptsLoaded}
             />
             
             {currentLesson?.content && (

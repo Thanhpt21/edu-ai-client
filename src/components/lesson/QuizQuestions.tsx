@@ -206,9 +206,7 @@ export default function QuizQuestions({
                     )}
                   </div>
                   
-                  <div className="text-right">
-                    <Text type="secondary" className="block">Điểm: {question.points || 1}</Text>
-                  </div>
+                
                 </div>
 
                 {/* Các lựa chọn */}
@@ -225,7 +223,7 @@ export default function QuizQuestions({
                       className += "bg-green-50 border-green-300"
                       icon = <CheckCircleOutlined className="text-green-600 ml-2" />
                     } else if (isUserSelected && !isCorrectOption) {
-                      className += "bg-red-50 border-red-300"
+                      className += "bg-green-50 border-green-300"
                       icon = <CloseCircleOutlined className="text-red-600 ml-2" />
                     } else {
                       className += "bg-gray-50 border-gray-200"
@@ -243,7 +241,7 @@ export default function QuizQuestions({
                               <Text className={isCorrectOption ? 'text-green-700 font-medium' : ''}>
                                 {option}
                                 {isUserSelected && !isCorrectOption && (
-                                  <Tag color="red" className="ml-2">Bạn chọn</Tag>
+                                  <Tag color="green" className="ml-2">Bạn chọn</Tag>
                                 )}
                                 {isCorrectOption && (
                                   <Tag color="green" className="ml-2">Đáp án đúng</Tag>
