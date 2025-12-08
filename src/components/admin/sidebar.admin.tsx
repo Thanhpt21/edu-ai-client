@@ -53,12 +53,12 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
         defaultSelectedKeys={['1']}
         items={[
           {
-            key: '1',
+            key: 'admin',
             icon: <DashboardOutlined />,
             label: <Link href="/admin">Dashboard</Link>,
           },
           {
-            key: '2',
+            key: 'course',
             icon: <GoldOutlined />,
             label: <Link href="/admin/course">Khóa học</Link>,
           },
@@ -68,29 +68,29 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             label: <Link href="/admin/assignments">Bài tập</Link>,
           },
           {
-            key: 'quizzes', // Thêm menu Quiz
+            key: 'quizzes',
             icon: <QuestionCircleOutlined />,
             label: <Link href="/admin/quizzes">Quiz</Link>,
           },
           {
-            key: '3',
+            key: 'users',
             icon: <UserOutlined />,
             label: <Link href="/admin/users">Tài khoản</Link>,
           },
           {
-            key: '4',
+            key: 'role',
             icon: <SettingOutlined />,
             label: <Link href="/admin/role">Vai trò</Link>,
           },
           {
-            key: '5',
+            key: 'permission',
             icon: <FileProtectOutlined />,
             label: <Link href="/admin/permission">Quyền</Link>,
           },
           {
-            key: '6',
-            icon: <SolutionOutlined />,
-            label: <Link href="/admin/promptAI">Kịch bản AI</Link>,
+            key: 'contact',
+            icon: <MessageOutlined />,
+            label: <Link href="/admin/contact">Liên hệ</Link>,
           },
           {
             key: 'sub4',
@@ -98,17 +98,17 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             label: 'Cấu hình',
             children: [
               {
-                key: '22',
+                key: 'category',
                 icon: <GoldOutlined />,
                 label: <Link href="/admin/category">Danh mục khóa học</Link>,
               },
               {
-                key: '21',
+                key: 'tag',
                 icon: <GoldOutlined />,
                 label: <Link href="/admin/tag">Thẻ khóa học</Link>,
               },
               { 
-                key: '20', 
+                key: 'config', 
                 icon: <SettingOutlined />, 
                 label: <Link href="/admin/config">Cấu hình</Link> 
               },

@@ -11,7 +11,6 @@ const MainMenu = ({ pathname }: MainMenuProps) => {
   const mainMenuItems = [
     { label: 'Trang chủ', href: '/' },
     { label: 'Khóa học', href: '/courses' },
-    { label: 'Giảng viên', href: '/instructors' },
     { label: 'Blog', href: '/blog' },
     { label: 'Về chúng tôi', href: '/about' },
   ];
