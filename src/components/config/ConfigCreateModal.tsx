@@ -3,115 +3,76 @@
 import { Modal, Form, Input, Button, Upload, message, Row, Col, Checkbox } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
-import { useUpdateConfig } from '@/hooks/config/useUpdateConfig'
+import { useCreateConfig } from '@/hooks/config/useCreateConfig'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { 
   createImageUploadValidator,
   ACCEPTED_IMAGE_TYPES, 
   MAX_IMAGE_SIZE_MB, 
 } from '@/utils/upload.utils'
-import { getImageUrl } from '@/utils/getImageUrl'
 
-interface ConfigUpdateModalProps {
+interface ConfigCreateModalProps {
   open: boolean
   onClose: () => void
-  config: any
   refetch?: () => void
 }
 
-export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpdateModalProps) => {
+export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalProps) => {
   const [form] = Form.useForm()
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [bannerFile, setBannerFile] = useState<UploadFile[]>([])
-  const { mutateAsync, isPending } = useUpdateConfig()
+  const { mutateAsync, isPending } = useCreateConfig()
 
+  // Reset form khi mở/đóng modal
   useEffect(() => {
-    if (config && open) {
+    if (open) {
+      form.resetFields()
+      setFileList([])
+      setBannerFile([])
+      // Set default cho checkbox
       form.setFieldsValue({
-        name: config.name,
-        email: config.email || '',
-        mobile: config.mobile || '',
-        address: config.address || '',
-        googlemap: config.googlemap || '',
-        facebook: config.facebook || '',
-        zalo: config.zalo || '',
-        instagram: config.instagram || '',
-        tiktok: config.tiktok || '',
-        youtube: config.youtube || '',
-        x: config.x || '',
-        linkedin: config.linkedin || '',
-
-        VNP_TMN_CODE: config.VNP_TMN_CODE || '',
-        VNP_SECRET: config.VNP_SECRET || '',
-        VNP_API_URL: config.VNP_API_URL || '',
-        EMAIL_USER: config.EMAIL_USER || '',
-        EMAIL_PASS: config.EMAIL_PASS || '',
-        EMAIL_FROM: config.EMAIL_FROM || '',
-
-        // Checkboxes
-        showEmail: config.showEmail ?? true,
-        showMobile: config.showMobile ?? true,
-        showAddress: config.showAddress ?? true,
-        showGooglemap: config.showGooglemap ?? false,
-        showFacebook: config.showFacebook ?? true,
-        showZalo: config.showZalo ?? false,
-        showInstagram: config.showInstagram ?? false,
-        showTiktok: config.showTiktok ?? false,
-        showYoutube: config.showYoutube ?? false,
-        showX: config.showX ?? false,
-        showLinkedin: config.showLinkedin ?? false,
+        showEmail: true,
+        showMobile: true,
+        showAddress: true,
+        showGooglemap: false,
+        showFacebook: true,
+        showZalo: false,
+        showInstagram: false,
+        showTiktok: false,
+        showYoutube: false,
+        showX: false,
+        showLinkedin: false,
       })
-
-      if (config.logo) {
-        setFileList([
-          {
-            uid: '-1',
-            name: config.logo.split('/').pop() || 'logo.png',
-            status: 'done',
-            url: getImageUrl(config.logo) || undefined,
-          },
-        ])
-      }
-       if (config.banner?.length) {
-        setBannerFile(config.banner.map((url: any, idx: any) => ({ uid: idx.toString(), name: `img${idx}.png`, status: 'done', url: getImageUrl(url) })))
-      }
     }
-  }, [config, open, form])
+  }, [open, form])
 
   const onFinish = async (values: any) => {
     try {
       const formData = new FormData()
       Object.entries(values).forEach(([key, val]) => {
         if (val !== undefined && val !== null) {
-          formData.append(key, val as any)
+          formData.append(key, String(val)) // boolean → "true"/"false"
         }
       })
 
       const file = fileList?.[0]?.originFileObj
       if (file) formData.append('logo', file)
       bannerFile.forEach(file => { if (file.originFileObj) formData.append('banner', file.originFileObj) })
-      await mutateAsync({ id: config.id, data: formData })
-      message.success('Cập nhật cấu hình thành công')
+
+      await mutateAsync(formData)
+      message.success('Tạo cấu hình thành công')
       onClose()
-      form.resetFields()
       setFileList([])
       setBannerFile([])
       refetch?.()
     } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Lỗi cập nhật cấu hình')
+      message.error(err?.response?.data?.message || 'Lỗi tạo cấu hình')
     }
   }
 
-  useEffect(() => {
-    if (!open) {
-      form.resetFields()
-      setFileList([])
-    }
-  }, [open, form])
-
   return (
     <Modal 
-      title="Cập nhật cấu hình" 
+      title="Tạo cấu hình mới" 
       open={open} 
       onCancel={onClose} 
       footer={null} 
@@ -120,7 +81,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
- <Col span={12}>
+          <Col span={12}>
             <Form.Item label="Logo" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
               <Upload
                 listType="picture"
@@ -135,7 +96,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
             </Form.Item>
           </Col>
            <Col span={12}>
-            <Form.Item label="Ảnh banner">
+            <Form.Item label="Ảnh banner" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
               <Upload
                 listType="picture"
                 fileList={bannerFile}
@@ -144,19 +105,24 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
                 multiple
                 accept={ACCEPTED_IMAGE_TYPES}
               >
-                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+                <Button icon={<UploadOutlined />}>Chọn banner</Button>
               </Upload>
             </Form.Item>
           </Col>
         </Row>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="Tên website" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}>
+            <Form.Item 
+              label="Tên website" 
+              name="name" 
+              rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}
+            >
               <Input placeholder="Ví dụ: My Shop" />
             </Form.Item>
           </Col>
-         
+          
         </Row>
+
 
         {/* Email */}
         <Row gutter={16} align="middle">
@@ -176,7 +142,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
         <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Số điện thoại" name="mobile">
-              <Input placeholder="Ví dụ: 0123456789" />
+              <Input placeholder="Ví dụ: 0912345678" />
             </Form.Item>
           </Col>
           <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -204,7 +170,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
         <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Google Map" name="googlemap">
-              <Input placeholder="Google Map URL" />
+              <Input placeholder="Google Map URL hoặc iframe" />
             </Form.Item>
           </Col>
           <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -312,7 +278,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           </Col>
         </Row>
 
-         <Row gutter={16}>
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="VNP_TMN_CODE" name="VNP_TMN_CODE">
               <Input placeholder="Nhập VNP_TMN_CODE" />
@@ -320,7 +286,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           </Col>
           <Col span={12}>
             <Form.Item label="VNP_SECRET" name="VNP_SECRET">
-              <Input.Password placeholder="Nhập VNP_SECRET" />
+              <Input placeholder="Nhập VNP_SECRET" />
             </Form.Item>
           </Col>
         </Row>
@@ -351,9 +317,10 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           </Col>
         </Row>
 
+
         <Form.Item style={{ marginTop: 24 }}>
           <Button type="primary" htmlType="submit" loading={isPending} block size="large">
-            Cập nhật cấu hình
+            Tạo mới
           </Button>
         </Form.Item>
       </Form>

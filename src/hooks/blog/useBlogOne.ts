@@ -1,12 +1,11 @@
-// hooks/config/useConfigOne.ts
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/axios'
 
-export const useConfigOne = (id: number | string) => {
+export const useBlogOne = (id: number | string) => {
   return useQuery({
-    queryKey: ['config', id],
+    queryKey: ['blog', id],
     queryFn: async () => {
-      const res = await api.get(`/configs/${id}`)
+      const res = await api.get(`/blogs/${id}`)
       return res.data.data
     },
     enabled: !!id,

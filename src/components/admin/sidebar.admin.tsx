@@ -7,6 +7,7 @@ import {
   BgColorsOutlined, 
   BookOutlined, 
   BranchesOutlined, 
+  BulbOutlined, 
   DashboardOutlined, 
   FileProtectOutlined, 
   GiftOutlined, 
@@ -91,6 +92,11 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             key: 'contact',
             icon: <MessageOutlined />,
             label: <Link href="/admin/contact">Liên hệ</Link>,
+          },
+          {
+            key: 'blog',
+            icon: <BulbOutlined  />,
+            label: <Link href="/admin/blog">Tin tức</Link>,
           },
           {
             key: 'sub4',

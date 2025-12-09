@@ -1,7 +1,7 @@
 // src/app/courses/[id]/lessons/components/QuizCard.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, Tag, Typography, Button } from 'antd'
 import { 
   CloseOutlined, 
@@ -36,7 +36,7 @@ interface QuizCardProps {
   onRetryQuiz: (quizId: number) => Promise<void>
   onRestoreAttempt: (quizId: number, attemptId: number) => void
   isLoadingSubmit: boolean
-  onAttemptsLoaded?: (quizId: number, attemptsData: any) => void  // Thêm prop này
+  onAttemptsLoaded?: (quizId: number, attemptsData: any) => void
 }
 
 export default function QuizCard({
@@ -56,22 +56,25 @@ export default function QuizCard({
   onRetryQuiz,
   onRestoreAttempt,
   isLoadingSubmit,
-  onAttemptsLoaded,  // Nhận prop mới
+  onAttemptsLoaded,
 }: QuizCardProps) {
   const [showHistory, setShowHistory] = useState(false)
   const passingScore = quiz.passingScore || 70
   const hasLocalAttempt = !!activeAttemptId
   const highestScore = result?.percentage || 0
   const hasUserAttempted = result || hasLocalAttempt || isSubmitted
+  
+  // Sử dụng ref để lưu giá trị cũ
+  const prevAttemptsDataRef = useRef<any>(null)
 
-  // Hooks luôn được gọi - không có điều kiện
+  // Hooks
   const { 
     data: activeAttempt, 
     isLoading: isLoadingActive, 
     refetch: refetchActive 
   } = useActiveQuizAttempt(quiz.id, userId, {
     refetchInterval: refetchInterval && isExpanded ? 10000 : false,
-    enabled: isExpanded || !!activeAttemptId
+    enabled: isExpanded || !!activeAttemptId,
   })
 
   const { 
@@ -84,41 +87,31 @@ export default function QuizCard({
   const hasActiveAttempt = !!activeAttempt
   const historyCount = userAttemptsData?.attempts?.length || 0
 
-  // 🔥 QUAN TRỌNG: Gửi attempts data lên parent khi có dữ liệu
-  useEffect(() => {
-    if (userAttemptsData && onAttemptsLoaded) {
-      console.log(`📤 QuizCard ${quiz.id}: Sending attempts data to parent`, {
-        quizId: quiz.id,
-        attempts: userAttemptsData.attempts?.length || 0,
-        highestScore: userAttemptsData.stats?.highestScore || 0
-      })
-      onAttemptsLoaded(quiz.id, userAttemptsData)
-    }
-  }, [userAttemptsData, quiz.id, onAttemptsLoaded])
+  // Callbacks
+  const handleRestoreAttempt = useCallback((attemptId: number) => {
+    onRestoreAttempt(quiz.id, attemptId)
+  }, [quiz.id, onRestoreAttempt])
 
-  // Auto-restore attempt từ server
-  // FIXED: Khôi phục attempt dù đã có local attempt hay chưa
-    useEffect(() => {
-    if (activeAttempt?.id && activeAttemptId !== activeAttempt.id) {
-        console.log(`Restoring active attempt ${activeAttempt.id} for quiz ${quiz.id}`)
-        onRestoreAttempt(quiz.id, activeAttempt.id)
-    }
-    }, [activeAttempt?.id, activeAttemptId, quiz.id]) 
+  const handleAnswerChange = useCallback((questionId: number, value: any) => {
+    onAnswerChange(quiz.id, questionId, value)
+  }, [quiz.id, onAnswerChange])
 
-  // Polling cho real-time updates
-  useEffect(() => {
-    if (refetchInterval) {
-      const interval = setInterval(() => {
-        if (hasActiveAttempt || isExpanded) {
-          refetchActive()
-          refetchHistory()
-        }
-      }, refetchInterval as number)
-      return () => clearInterval(interval)
-    }
-  }, [refetchInterval, hasActiveAttempt, isExpanded, refetchActive, refetchHistory])
+  const handleSubmitQuiz = useCallback((questions: any[]) => {
+    return onSubmitQuiz(quiz.id, questions)
+  }, [quiz.id, onSubmitQuiz])
 
-  const handleStartOrContinue = async () => {
+  const handleRetryQuiz = useCallback(() => {
+    return onRetryQuiz(quiz.id)
+  }, [quiz.id, onRetryQuiz])
+
+  const handleViewReviewClick = useCallback(async () => {
+    await onViewReview(quiz.id)
+    if (!isExpanded) {
+      onToggleQuiz(quiz.id)
+    }
+  }, [quiz.id, isExpanded, onViewReview, onToggleQuiz])
+
+  const handleStartOrContinueClick = useCallback(async () => {
     if (hasLocalAttempt && !isSubmitted) {
       if (!isExpanded) {
         onToggleQuiz(quiz.id)
@@ -128,22 +121,72 @@ export default function QuizCard({
     } else {
       await onStartQuiz(quiz.id)
     }
-  }
+  }, [
+    hasLocalAttempt, 
+    isSubmitted, 
+    isExpanded, 
+    result, 
+    onToggleQuiz, 
+    onRetryQuiz, 
+    onStartQuiz, 
+    quiz.id
+  ])
 
-  const handleViewReview = async () => {
-    await onViewReview(quiz.id)
-    if (!isExpanded) {
-      onToggleQuiz(quiz.id)
+  const toggleShowHistory = useCallback(() => {
+    setShowHistory(prev => !prev)
+  }, [])
+
+  const handleToggleQuiz = useCallback(() => {
+    onToggleQuiz(quiz.id)
+  }, [quiz.id, onToggleQuiz])
+
+  // Gửi attempts data lên parent khi có dữ liệu mới
+  useEffect(() => {
+    if (userAttemptsData && onAttemptsLoaded) {
+      const isDataChanged = JSON.stringify(userAttemptsData) !== JSON.stringify(prevAttemptsDataRef.current)
+      
+      if (isDataChanged) {
+        console.log(`📤 QuizCard ${quiz.id}: Sending attempts data to parent`)
+        onAttemptsLoaded(quiz.id, userAttemptsData)
+        prevAttemptsDataRef.current = userAttemptsData
+      }
     }
-  }
+  }, [userAttemptsData, quiz.id, onAttemptsLoaded])
 
-  const getButtonConfig = () => {
+  // Auto-restore attempt từ server
+  useEffect(() => {
+    if (activeAttempt?.id && activeAttemptId !== activeAttempt.id) {
+      console.log(`Restoring active attempt ${activeAttempt.id} for quiz ${quiz.id}`)
+      handleRestoreAttempt(activeAttempt.id)
+    }
+  }, [activeAttempt?.id, activeAttemptId, quiz.id, handleRestoreAttempt])
+
+  // Polling
+  useEffect(() => {
+    if (refetchInterval && (hasActiveAttempt || isExpanded)) {
+      const interval = setInterval(() => {
+        refetchActive()
+        refetchHistory()
+      }, refetchInterval as number)
+      
+      return () => clearInterval(interval)
+    }
+  }, [
+    refetchInterval, 
+    hasActiveAttempt, 
+    isExpanded, 
+    refetchActive, 
+    refetchHistory
+  ])
+
+  // Button config
+  const getButtonConfig = useCallback(() => {
     if (isExpanded) {
       return {
         text: 'Đóng',
         icon: <CloseOutlined />,
         type: 'default' as const,
-        onClick: () => onToggleQuiz(quiz.id)
+        onClick: handleToggleQuiz
       }
     }
 
@@ -152,7 +195,7 @@ export default function QuizCard({
         text: 'Tiếp tục làm bài',
         icon: <SyncOutlined />,
         type: 'primary' as const,
-        onClick: handleStartOrContinue
+        onClick: handleStartOrContinueClick
       }
     }
 
@@ -161,7 +204,7 @@ export default function QuizCard({
         text: 'Tiếp tục làm bài',
         icon: <SyncOutlined />,
         type: 'primary' as const,
-        onClick: handleStartOrContinue
+        onClick: handleStartOrContinueClick
       }
     }
 
@@ -170,7 +213,7 @@ export default function QuizCard({
         text: 'Làm bài mới',
         icon: <SyncOutlined />,
         type: 'default' as const,
-        onClick: handleStartOrContinue
+        onClick: handleStartOrContinueClick
       }
     }
 
@@ -178,37 +221,97 @@ export default function QuizCard({
       text: 'Làm bài',
       icon: <ExclamationCircleOutlined />,
       type: 'primary' as const,
-      onClick: handleStartOrContinue
+      onClick: handleStartOrContinueClick
     }
-  }
+  }, [
+    isExpanded, 
+    hasLocalAttempt, 
+    isSubmitted, 
+    hasActiveAttempt, 
+    result, 
+    hasHistory, 
+    handleToggleQuiz, 
+    handleStartOrContinueClick
+  ])
 
   const buttonConfig = getButtonConfig()
 
+  // Render helper functions
+  const renderStatusTags = () => (
+    <div className="mt-2 space-x-2">
+      {quiz.isPublished ? (
+        <Tag color="green">Công khai</Tag>
+      ) : (
+        <Tag color="default">Bản nháp</Tag>
+      )}
+      {hasUserAttempted && (
+        <Tag color={highestScore >= passingScore ? "green" : "red"}>
+          {highestScore >= passingScore ? 'Đã đạt' : 'Chưa đạt'}
+        </Tag>
+      )}
+      {(hasLocalAttempt || hasActiveAttempt) && !isSubmitted && (
+        <Tag color="blue">Đang làm</Tag>
+      )}
+      {isSubmitted && !result && (
+        <Tag color="orange">Đã nộp</Tag>
+      )}
+    </div>
+  )
+
+  const renderStatsInfo = () => {
+    if (!isExpanded && hasUserAttempted) {
+      if (result) {
+        return (
+          <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
+            Kết quả gần nhất: <strong>{result.percentage}%</strong> • 
+            Trạng thái: <strong>{result.passed ? 'Đã đạt' : 'Chưa đạt'}</strong>
+            {result.submittedAt && result.submittedAt !== 'Invalid Date' && (
+              <> • Thời gian: {new Date(result.submittedAt).toLocaleDateString('vi-VN')}</>
+            )}
+          </div>
+        )
+      }
+      
+      if (isSubmitted) {
+        return (
+          <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
+            Bài kiểm tra đã được nộp • Đang chờ kết quả
+          </div>
+        )
+      }
+      
+      if (hasLocalAttempt || hasActiveAttempt) {
+        return (
+          <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
+            Đang làm bài • Chưa hoàn thành
+          </div>
+        )
+      }
+      
+      if (hasHistory) {
+        return (
+          <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
+            Đã làm {historyCount} lần • 
+            Điểm cao nhất: <strong>{userAttemptsData?.stats?.highestScore || 0}%</strong>
+            {userAttemptsData?.stats?.highestScore && (
+              <> • Trạng thái: <strong>{userAttemptsData.stats.highestScore >= passingScore ? 'Đã đạt' : 'Chưa đạt'}</strong></>
+            )}
+          </div>
+        )
+      }
+    }
+    return null
+  }
+
   return (
-    <Card
-      className={`mb-4 ${hasUserAttempted ? (highestScore >= passingScore ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50') : ''}`}
+    <Card className={`mb-4 ${hasUserAttempted ? 
+      (highestScore >= passingScore ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50') : 
+      ''}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <Text strong className="text-lg">{quiz.title}</Text>
-          <div className="mt-2 space-x-2">
-            {quiz.isPublished ? (
-              <Tag color="green">Công khai</Tag>
-            ) : (
-              <Tag color="default">Bản nháp</Tag>
-            )}
-            {hasUserAttempted && (
-              <Tag color={highestScore >= passingScore ? "green" : "red"}>
-                {highestScore >= passingScore ? 'Đã đạt' : 'Chưa đạt'}
-              </Tag>
-            )}
-            {(hasLocalAttempt || hasActiveAttempt) && !isSubmitted && (
-              <Tag color="blue">Đang làm</Tag>
-            )}
-            {isSubmitted && !result && (
-              <Tag color="orange">Đã nộp</Tag>
-            )}
-          </div>
+          {renderStatusTags()}
           {quiz.description && (
             <Text type="secondary" className="block mt-2">{quiz.description}</Text>
           )}
@@ -234,7 +337,7 @@ export default function QuizCard({
             type="link"
             size="small"
             icon={<HistoryOutlined />}
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={toggleShowHistory}
             loading={isLoadingHistory}
           >
             {showHistory ? 'Ẩn lịch sử' : `Xem lịch sử (${historyCount})`}
@@ -242,31 +345,7 @@ export default function QuizCard({
         )}
       </div>
 
-      {!isExpanded && hasUserAttempted && (
-        <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
-          {result ? (
-            <>
-              Kết quả gần nhất: <strong>{result.percentage}%</strong> • 
-              Trạng thái: <strong>{result.passed ? 'Đã đạt' : 'Chưa đạt'}</strong>
-              {result.submittedAt && result.submittedAt !== 'Invalid Date' && (
-                <> • Thời gian: {new Date(result.submittedAt).toLocaleDateString('vi-VN')}</>
-              )}
-            </>
-          ) : isSubmitted ? (
-            <>Bài kiểm tra đã được nộp • Đang chờ kết quả</>
-          ) : (hasLocalAttempt || hasActiveAttempt) ? (
-            <>Đang làm bài • Chưa hoàn thành</>
-          ) : hasHistory ? (
-            <>
-              Đã làm {historyCount} lần • 
-              Điểm cao nhất: <strong>{userAttemptsData?.stats?.highestScore || 0}%</strong>
-              {userAttemptsData?.stats?.highestScore && (
-                <> • Trạng thái: <strong>{userAttemptsData.stats.highestScore >= passingScore ? 'Đã đạt' : 'Chưa đạt'}</strong></>
-              )}
-            </>
-          ) : null}
-        </div>
-      )}
+      {renderStatsInfo()}
 
       {hasUserAttempted && highestScore > 0 && (
         <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded">
@@ -297,7 +376,7 @@ export default function QuizCard({
           <Button
             type="default"
             icon={<EyeOutlined />}
-            onClick={handleViewReview}
+            onClick={handleViewReviewClick}
           >
             Xem lại đáp án
           </Button>
@@ -310,26 +389,25 @@ export default function QuizCard({
             quizId={quiz.id}
             userId={userId}
             quiz={quiz}
-            userAnswers={quizAnswers}
+            userAnswers={quizAnswers[quiz.id] || {}}
             isSubmitted={isSubmitted}
             result={result}
             attemptId={activeAttemptId}
-            onAnswerChange={(questionId, value) => onAnswerChange(quiz.id, questionId, value)}
-            onSubmit={(questions) => onSubmitQuiz(quiz.id, questions)}
-            onRetry={() => onRetryQuiz(quiz.id)}
+            onAnswerChange={handleAnswerChange}
+            onSubmit={handleSubmitQuiz}
+            onRetry={handleRetryQuiz}
             isReviewMode={false}
             isLoadingSubmit={isLoadingSubmit}
           />
         </div>
       )}
 
-      {/* Hiển thị lịch sử bên dưới khi được toggle */}
       {showHistory && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <QuizHistory
             quizId={quiz.id}
             userId={userId}
-            onClose={() => setShowHistory(false)}
+            onClose={toggleShowHistory}
           />
         </div>
       )}
